@@ -73,12 +73,18 @@ namespace EarthBackdrop {
                     if (img != null) {
                         Image earth = img.Result;
                         string msg = String.Format("Last download was at {0}", DateTime.Now.ToString("f"));
-                        SetBackground(earth);
+                        SetBackground(DecorateBackdrop(earth));
                         parent.UpdateTrayIcon(earth, msg);
                     }
                     Monitor.Wait(Lock, TimeSpan.FromHours(1));
                 }          
             }
+        }
+
+        private Image DecorateBackdrop(Image earth) {
+            BackdropDecorator d = new BackdropDecorator();
+            d.AddImage(earth);
+            return d.Backdrop;
         }
 
         /// <summary>
@@ -99,10 +105,11 @@ namespace EarthBackdrop {
         /// </summary>
         /// <param name="img">The image data to use for the background</param>
         private void SetBackground(Image img) {
+            // Adapted from https://stackoverflow.com/a/1061682/195833
             string tempPath = Path.Combine(Path.GetTempPath(), "wallpaper.bmp");
             img.Save(tempPath, System.Drawing.Imaging.ImageFormat.Bmp);
             RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true);
-            key.SetValue(@"WallpaperStyle", "6"); //Fit
+            key.SetValue(@"WallpaperStyle", "0"); // Center
             key.SetValue(@"TileWallpaper", "0");
             SystemParametersInfo(SPI_SETDESKWALLPAPER,
                 0,
