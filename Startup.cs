@@ -29,6 +29,7 @@ namespace EarthBackdrop {
             trayIcon = new NotifyIcon() {
                 Icon = Icon.FromHandle(Resources.AppIcon.GetHicon()),
                 ContextMenu = new ContextMenu(new MenuItem[] {
+                    new MenuItem("Refresh", Refresh ),
                     new MenuItem("Exit", Exit)
                 }),
                 Visible = true
@@ -94,6 +95,10 @@ namespace EarthBackdrop {
             downloader.Stop();
             trayIcon.Visible = false;
             Application.Exit();
+        }
+
+        private void Refresh(object sender, EventArgs e) {
+            downloader.Refresh();
         }
 
     }

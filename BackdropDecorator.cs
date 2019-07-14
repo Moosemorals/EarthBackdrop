@@ -44,5 +44,36 @@ namespace EarthBackdrop {
                 gr.DrawImage(img, dest);
             }
         }
+
+        internal void AddCalendar(DateTime now) {
+            DateTime startOfMonth = new DateTime(now.Year, now.Month, 1);
+           
+            using (Graphics gr = Graphics.FromImage(backdrop)) {
+                Brush brush = new SolidBrush(Color.White);
+                Font font = new Font(FontFamily.GenericSansSerif, 16);
+
+                SizeF glyphSize  = gr.MeasureString("00", font);
+
+                SizeF dateSize = gr.MeasureString(now.ToLongDateString(), font);
+
+                gr.DrawString(now.ToLongDateString(), font, brush, ((glyphSize.Width * 7) - dateSize.Width) /2, 0);
+
+
+                for (int i = 0; i < DateTime.DaysInMonth(startOfMonth.Year, startOfMonth.Month); i += 1) {
+                    DateTime dayInMonth = startOfMonth.AddDays(i);
+                    float x = (glyphSize.Width + 2) * (int)dayInMonth.DayOfWeek;
+                    float y = (glyphSize.Height + 2) * (1 + (dayInMonth.Day / 7));
+
+                    if (dayInMonth.Day == now.Day) {
+                        gr.DrawRectangle(new Pen(Color.Red, 3), x, y , glyphSize.Width, glyphSize.Height);
+                    }
+
+                    string dayString = String.Format("{0}", dayInMonth.Day);
+
+                    gr.DrawString(dayString, font, brush, x + (glyphSize.Width - gr.MeasureString(dayString, font).Width), y); 
+                }
+
+            }
+        }
     }
 }

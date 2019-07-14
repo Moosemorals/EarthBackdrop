@@ -84,6 +84,7 @@ namespace EarthBackdrop {
         private Image DecorateBackdrop(Image earth) {
             BackdropDecorator d = new BackdropDecorator();
             d.AddImage(earth);
+            d.AddCalendar(DateTime.Now);
             return d.Backdrop;
         }
 
