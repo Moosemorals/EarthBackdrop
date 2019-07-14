@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -16,16 +17,18 @@ namespace EarthBackdrop {
         private const int SPIF_UPDATEINIFILE = 0x01;
         private const int SPIF_SENDWININICHANGE = 0x02;
 
-        // TODO: Load this from some kind of config repository
-        private const string TARGET_URL = "https://eumetview.eumetsat.int/static-images/latestImages/EUMETSAT_MSG_RGBNatColourEnhncd_FullResolution.jpg";
+        private const string IMAGEURL_KEY = "ImageURL";
+
+        private readonly string  imageURL;
         private static readonly HttpClient client = new HttpClient();
 
         private readonly object Lock = new object();
         private bool running = false;
-        private EarthBackdropApplicationContext earthBackdropApplicationContext;
+        private readonly EarthBackdropApplicationContext parent;
 
         public EarthDownloader(EarthBackdropApplicationContext earthBackdropApplicationContext) {
-            this.earthBackdropApplicationContext = earthBackdropApplicationContext;
+            parent = earthBackdropApplicationContext;
+            imageURL = ConfigurationManager.AppSettings[IMAGEURL_KEY];
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -71,7 +74,7 @@ namespace EarthBackdrop {
                         Image earth = img.Result;
                         string msg = String.Format("Last download was at {0}", DateTime.Now.ToString("f"));
                         SetBackground(earth);
-                        earthBackdropApplicationContext.UpdateTrayIcon(earth, msg);
+                        parent.UpdateTrayIcon(earth, msg);
                     }
                     Monitor.Wait(Lock, TimeSpan.FromHours(1));
                 }          
@@ -83,7 +86,7 @@ namespace EarthBackdrop {
         /// </summary>
         /// <returns>A download task</returns>
         private async Task<Image> DownloadImage() {
-            HttpResponseMessage resp = await client.GetAsync(TARGET_URL);
+            HttpResponseMessage resp = await client.GetAsync(imageURL);
             if (resp.IsSuccessStatusCode) {
                 return Image.FromStream(await resp.Content.ReadAsStreamAsync());
             }
