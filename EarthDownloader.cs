@@ -1,13 +1,10 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +17,7 @@ namespace EarthBackdrop {
         private const string IMAGEURL_KEY = "ImageURL";
 
         private readonly string  imageURL;
-        private static readonly HttpClient client = new HttpClient();
+        private readonly HttpClient httpClient;
 
         private readonly object Lock = new object();
         private bool running = false;
@@ -29,6 +26,7 @@ namespace EarthBackdrop {
         public EarthDownloader(EarthBackdropApplicationContext earthBackdropApplicationContext) {
             parent = earthBackdropApplicationContext;
             imageURL = ConfigurationManager.AppSettings[IMAGEURL_KEY];
+            httpClient = parent.httpClient;
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -85,6 +83,7 @@ namespace EarthBackdrop {
             BackdropDecorator d = new BackdropDecorator();
             d.AddImage(earth);
             d.AddCalendar(DateTime.Now);
+            d.AddWeather(httpClient);
             return d.Backdrop;
         }
 
@@ -93,7 +92,7 @@ namespace EarthBackdrop {
         /// </summary>
         /// <returns>A download task</returns>
         private async Task<Image> DownloadImage() {
-            HttpResponseMessage resp = await client.GetAsync(imageURL);
+            HttpResponseMessage resp = await httpClient.GetAsync(imageURL);
             if (resp.IsSuccessStatusCode) {
                 return Image.FromStream(await resp.Content.ReadAsStreamAsync());
             }

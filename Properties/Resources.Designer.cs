@@ -69,5 +69,15 @@ namespace EarthBackdrop.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] weathericons_regular_webfont {
+            get {
+                object obj = ResourceManager.GetObject("weathericons_regular_webfont", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }

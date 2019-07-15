@@ -1,30 +1,36 @@
 ﻿using EarthBackdrop.Properties;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Net.Http;
 using System.Windows.Forms;
 
 namespace EarthBackdrop {
+
+
+
     static class Startup {
+
+        private static readonly HttpClient client = new HttpClient();
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
         static void Main() {
+            
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new EarthBackdropApplicationContext());
+            Application.Run(new EarthBackdropApplicationContext(client));
         }
     }
 
     public class EarthBackdropApplicationContext : ApplicationContext {
         private readonly NotifyIcon trayIcon;
         private readonly EarthDownloader downloader;
+        internal readonly HttpClient httpClient;
 
-        public EarthBackdropApplicationContext() {
+        public EarthBackdropApplicationContext(HttpClient httpClient) {
+            this.httpClient = httpClient;
 
             trayIcon = new NotifyIcon() {
                 Icon = Icon.FromHandle(Resources.AppIcon.GetHicon()),
