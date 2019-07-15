@@ -26,7 +26,7 @@ namespace EarthBackdrop {
 
     public class EarthBackdropApplicationContext : ApplicationContext {
         private readonly NotifyIcon trayIcon;
-        private readonly EarthDownloader downloader;
+        private readonly BackgroundUpdater downloader;
         internal readonly HttpClient httpClient;
 
         public EarthBackdropApplicationContext(HttpClient httpClient) {
@@ -41,7 +41,7 @@ namespace EarthBackdrop {
                 Visible = true
             };
 
-            downloader = new EarthDownloader(this);
+            downloader = new BackgroundUpdater(this);
             downloader.Start();
 
             SystemEvents.PowerModeChanged += OnPowerModeChanged; 
