@@ -59,11 +59,17 @@ namespace EarthBackdrop {
 
                 gr.DrawString(now.ToLongDateString(), font, brush, ((glyphSize.Width * 7) - dateSize.Width) / 2, 0);
 
-
+                int row = 1;
                 for (int i = 0; i < DateTime.DaysInMonth(startOfMonth.Year, startOfMonth.Month); i += 1) {
                     DateTime dayInMonth = startOfMonth.AddDays(i);
-                    float x = (glyphSize.Width + 2) * (int)dayInMonth.DayOfWeek;
-                    float y = (glyphSize.Height + 2) * (1 + (dayInMonth.Day / 7));
+
+                    int col = ((7 + (int)dayInMonth.DayOfWeek - 1) % 7);
+                    if (col == 0 && i > 0) {
+                        row += 1;
+                    }
+
+                    float x = (glyphSize.Width + 2) * col;
+                    float y = (glyphSize.Height + 2) * (row);
 
                     if (dayInMonth.Day == now.Day) {
                         gr.DrawRectangle(new Pen(Color.Red, 3), x, y, glyphSize.Width, glyphSize.Height);
@@ -71,66 +77,93 @@ namespace EarthBackdrop {
 
                     string dayString = String.Format("{0}", dayInMonth.Day);
 
-                    gr.DrawString(dayString, font, brush, x + (glyphSize.Width - gr.MeasureString(dayString, font).Width), y);
+                    float rightAlignOffset = glyphSize.Width - gr.MeasureString(dayString, font).Width;
+
+                    gr.DrawString(dayString, font, brush, x + rightAlignOffset, y);
                 }
 
             }
         }
 
-        private static float WriteText(Graphics g, string text, Font font, Brush brush, float x, float y) {
-            SizeF size = g.MeasureString(text, font);
-            g.DrawString(text, font, brush, x, y);
-            return size.Height;
+        private class DrawReportData {
+            internal string Text { get; set; }
+            internal SizeF Bounds { get; set; }
+
+            internal DrawReportData(string text, Graphics gr, Font font) {
+                Bounds = gr.MeasureString(text, font);
+                Text = text;
+            }
+            internal DrawReportData(int value, string suffix, Graphics gr, Font font) {
+                Text = string.Format("{0}{1}", value, suffix);
+                Bounds = gr.MeasureString(Text, font);
+            }
+        }
+
+        private static float DrawReport(Graphics gr, Report r, DateTime time, string timeFormat, Font font, Brush brush, float x, float y) {
+
+            DrawReportData[] rows = new DrawReportData[] {
+                new DrawReportData(time.ToString(timeFormat), gr, font),
+                new DrawReportData(r.Glyph, gr, font),
+                new DrawReportData(r.Temperature,"\uf042C", gr,font),
+                new DrawReportData(r.PrecipitationProbibility, "%", gr, font),
+                new DrawReportData(r.WindSpeed, "", gr, font),
+                new DrawReportData(r.WindGust, "", gr, font),
+                new DrawReportData(r.RelativeHumidity, "%", gr, font),
+            };
+
+            float width = 0;
+            foreach (DrawReportData row in rows) {
+                if (width < row.Bounds.Width) {
+                    width = row.Bounds.Width;
+                }
+            }
+
+            float offset = 0;
+            foreach (DrawReportData row in rows) {
+                float rightAlign = width - row.Bounds.Width;
+                gr.DrawString(row.Text, font, brush, x + rightAlign, y + offset);
+                offset += row.Bounds.Height + 2;
+
+            }
+
+            return width;
         }
 
         internal void AddWeather(HttpClient httpClient) {
             WeatherReport weather = new WeatherDownloader(httpClient).GetReport();
 
-            DateTime now = DateTime.Now; 
-            using (PrivateFontCollection fonts = LoadWeatherIcons()) { 
+            DateTime now = DateTime.Now;
+            using (PrivateFontCollection fonts = LoadWeatherIcons()) {
                 using (Graphics gr = Graphics.FromImage(backdrop)) {
                     Brush brush = new SolidBrush(Color.White);
                     Font font = new Font(fonts.Families[0], 16);
 
-                    float x = 0;
+                    float x = 0; 
+                    float y = backdrop.Height - (font.Height * 10);
                     ReportEnumerator reports = new ReportEnumerator(weather);
                     int counter = 0;
                     foreach (Report r in reports) {
                         if (reports.ReportTime < now) {
                             continue;
                         }
+                        float width = DrawReport(gr, r, reports.ReportTime, "HH:mm", font, brush, x, y);
 
-                        // Time
-                        float y = backdrop.Height - (font.Height * 10);
-                            
-                        // Time 
-                        y += WriteText(gr, reports.ReportTime.ToString("HH:mm"), font, brush, x, y); 
-
-                        // Temperature
-                        y += WriteText(gr, String.Format("{0,3}\uf042C", r.Temperature), font, brush, x, y);
-
-                        // Wind - Speed
-                        y += WriteText(gr, String.Format("{0,3}", r.WindSpeed), font, brush, x, y);
-
-                        // Wind - Direction
-                        y += WriteText(gr, String.Format("{0,3}", r.WindDirection), font, brush, x, y);
-
-                        // Wind - Gust
-                        y += WriteText(gr, String.Format("{0,3}", r.WindGust), font, brush, x, y);
-
-                        // Rain percent
-                        y += WriteText(gr, String.Format("{0,3}%", r.PrecipitationProbibility), font, brush, x, y);
-
-                        // Humidity percent
-                        y += WriteText(gr, String.Format("{0,3}%", r.RelativeHumidity), font, brush, x, y);
-
-                        // General Weather
-                        y += WriteText(gr, String.Format("{0, 3}", r.Glyph), font, brush, x, y);
-
-                        x += gr.MeasureString("00:00 ", font).Width;
+                        x += width;
                         if (counter++ > 5) {
                             break;
                         }
+                    }
+
+                    reports.Reset();
+                   
+                    counter = 0;
+                    x = backdrop.Width - x;
+                    foreach(Report r in reports) {
+                        if (reports.ReportTime < now || reports.ReportTime.Hour != 12) {
+                            continue;
+                        }
+
+                        x += DrawReport(gr, r, reports.ReportTime, "ddd", font, brush, x, y);
                     }
                 }
             }
